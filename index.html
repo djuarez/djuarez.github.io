@@ -241,7 +241,7 @@
   </div>
 
   <div class="buttons">
-    <button class="btn btn-open" onclick="sendCommand('turn_on')">
+    <button class="btn btn-open" onclick="sendCommand('/garaje_abrir')">
       <div class="btn-left">
         <div class="btn-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -261,7 +261,7 @@
       </svg>
     </button>
 
-    <button class="btn btn-close" onclick="sendCommand('turn_off')">
+    <button class="btn btn-close" onclick="sendCommand('/garaje_cerrar')">
       <div class="btn-left">
         <div class="btn-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -288,41 +288,37 @@
   <div id="toast"></div>
 
   <script>
-    // Token: se lee de la URL la primera vez y se guarda en localStorage
-    // Uso inicial: garage.html?token=HA_LONG_LIVED_TOKEN
-    // Uso posterior: garage.html (sin parámetros)
-    const params     = new URLSearchParams(window.location.search);
-    const tokenParam = params.get('token');
-    if (tokenParam) localStorage.setItem('ha_token', tokenParam);
-    const TOKEN = tokenParam || localStorage.getItem('ha_token');
+    // Parámetros leídos de la URL
+    // Uso: garage.html?bot=BOT_TOKEN&chat=CHAT_ID
+    const params    = new URLSearchParams(window.location.search);
+    const BOT_TOKEN = params.get('bot');
+    const CHAT_ID   = params.get('chat');
 
     const app     = document.getElementById('app');
     const blocked = document.getElementById('blocked');
 
-    if (!TOKEN) {
+    // Bloquea si faltan los parámetros
+    if (!BOT_TOKEN || !CHAT_ID) {
       app.style.display     = 'none';
       blocked.style.display = 'flex';
     }
 
-    async function sendCommand(action) {
-      // action: 'turn_on' | 'turn_off'
-      const url = '/api/services/switch/' + action;
+    async function sendCommand(command) {
+      const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
 
       try {
-        const res = await fetch(url, {
+        const res  = await fetch(url, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + TOKEN,
-          },
-          body: JSON.stringify({ entity_id: 'switch.puerta_rampa_state' }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: CHAT_ID, text: command }),
         });
+        const data = await res.json();
 
-        if (res.ok) {
-          const label = action === 'turn_on' ? 'Abriendo rampa...' : 'Cerrando rampa...';
+        if (data.ok) {
+          const label = command === '/garaje_abrir' ? 'Abriendo puertas...' : 'Cerrando puertas...';
           showToast(label, 'success');
         } else {
-          showToast('Error ' + res.status, 'error');
+          showToast('Error al enviar comando', 'error');
         }
       } catch (e) {
         showToast('Sin conexión', 'error');
@@ -338,4 +334,3 @@
   </script>
 </body>
 </html>
-
